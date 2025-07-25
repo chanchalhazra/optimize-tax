@@ -194,7 +194,7 @@ def calculate_taxes(income, ssn_earning, bond_interest, ira_distribution,
     fed_income_tax = calculate_income_tax(income_tax_rate, fed_taxable_income)
     fed_gain_tax, rate = calculate_gain_tax(capital_gain_tax_rate, fed_taxable_income, long_capital_gain)
 
-    return sum(fed_income_tax), sum(fed_gain_tax), state_tax_total
+    return sum(fed_income_tax), sum(fed_gain_tax), state_tax_total, adjusted_gross_income
 
 def calculate_end_balance(start_val, expenses, incomes, ssn_earnings, market_return, retirement_contribution,
                           filing_choice, capital_gain_percent, custom_distribution, home_expenses, rmd_index):
@@ -206,6 +206,9 @@ def calculate_end_balance(start_val, expenses, incomes, ssn_earnings, market_ret
     dividend_returns = []
     bond_returns = []
     withdrawals = []
+    adj_gross_incomes = []
+    equity_draws = []
+    ira_distributions = {'RMD-m': [], 'RMD-p': [], 'IRA-m': [], 'IRA-p': []}
     #start_val = start_portfolio
     equity_bal = start_val['equity']
     ira_m_bal = start_val['IRA-m']
@@ -230,8 +233,7 @@ def calculate_end_balance(start_val, expenses, incomes, ssn_earnings, market_ret
         # Multiplying expense by 1.25 so that we included an estimated tax payment
         home_expense = {'property-tax': home_expenses['property-tax'][i],
                         'interest': home_expenses['interest'][i]}
-        shortfall = (1.25 * expenses[i] + home_expense['property-tax'] -
-                     (equity_dividend+bond_return+incomes[i]+ ssn_earnings[i]))
+        shortfall = max(0,(1.25 * expenses[i] - (equity_dividend+bond_return + incomes[i] + ssn_earnings[i])))
         equity_returns.append(equity_return)
         dividend_returns.append(equity_dividend)
         bond_returns.append(bond_return)
@@ -255,11 +257,16 @@ def calculate_end_balance(start_val, expenses, incomes, ssn_earnings, market_ret
         equity_withdrawal = max(0, (1-custom_distribution) * shortfall)
         ira_ratio = start_val['IRA-m']/(start_val['IRA-m']+start_val['IRA-p']+0.01)
         ira_m_withdraw = max(0, (shortfall-equity_withdrawal)*ira_ratio)
-        ira_p_withdraw = shortfall - equity_withdrawal - ira_m_withdraw
+        ira_p_withdraw = max(0,(shortfall - equity_withdrawal - ira_m_withdraw))
         ira_distribution = {'IRA-m': ira_m_withdraw,
                             'IRA-p': ira_p_withdraw,
                             'RMD-m': rmd_m_distribution,
                             'RMD-p': rmd_p_distribution}
+        equity_draws.append(equity_withdrawal)
+        ira_distributions['RMD-m'].append(rmd_m_distribution)
+        ira_distributions['RMD-p'].append(rmd_p_distribution)
+        ira_distributions['IRA-m'].append(ira_m_withdraw)
+        ira_distributions['IRA-p'].append(ira_p_withdraw)
         #add to IRA distribution the RMD part for both m snd p
 
         long_capital_gain = equity_withdrawal * capital_gain_percent + equity_dividend
@@ -267,7 +274,7 @@ def calculate_end_balance(start_val, expenses, incomes, ssn_earnings, market_ret
         residing_state = 'California'
         est_donation = 0
 
-        fed_tax, gain_tax, state_tax = calculate_taxes(incomes[i], ssn_earnings[i], bond_return, ira_distribution,
+        fed_tax, gain_tax, state_tax, adj_gross_income = calculate_taxes(incomes[i], ssn_earnings[i], bond_return, ira_distribution,
                                                        other_income,long_capital_gain,home_expense,est_donation,
                                                        residing_state, filing_choice)
         #st.write(f" taxes : {state_tax, fed_tax, gain_tax}")
@@ -284,8 +291,10 @@ def calculate_end_balance(start_val, expenses, incomes, ssn_earnings, market_ret
         end_balance['ROTH-p'].append(roth_p_bal)
         end_balance['equity'].append(equity_bal)
         end_balance['bond'] = start_val['bond']
+        adj_gross_incomes.append(adj_gross_income)
 
-    return end_balance, total_tax, equity_returns, dividend_returns, withdrawals, bond_returns
+    return (end_balance, total_tax, equity_returns, dividend_returns, withdrawals, bond_returns,
+            adj_gross_incomes, ira_distributions, equity_draws)
 def build_yearly_dataframe(future_years, total_ssn_earnings, total_incomes, yearly_expenses, market_return,
                            starting_portfolio, home_expenses, retirement_contribution, filing_choice,
                            capital_gain_percent, custom_distribution, rmd_index):
@@ -293,8 +302,8 @@ def build_yearly_dataframe(future_years, total_ssn_earnings, total_incomes, year
     years = list(range(current_year, current_year + future_years))
     finance_df = pd.DataFrame(index=years)
 
-    (end_balance, total_tax, eq_ret,
-     dividend_returns, withdrawals, bond_returns) = calculate_end_balance(starting_portfolio, yearly_expenses, total_incomes,
+    (end_balance, total_tax, eq_ret, dividend_returns, withdrawals,
+     bond_returns, adj_gross_incomes, ira_distributions, equity_draws) = calculate_end_balance(starting_portfolio, yearly_expenses, total_incomes,
                                                             total_ssn_earnings, market_return, retirement_contribution,
                                                             filing_choice, capital_gain_percent, custom_distribution,
                                                             home_expenses, rmd_index)
@@ -311,8 +320,14 @@ def build_yearly_dataframe(future_years, total_ssn_earnings, total_incomes, year
     finance_df["bond yield"] = market_return['bond']
     finance_df['Capital Return'] = eq_ret
     finance_df['Dividend Pay'] = np.ceil(dividend_returns)
-    finance_df['Interest Pay'] = np.ceil(dividend_returns)
-    finance_df['withdrawal'] = np.ceil(withdrawals)
+    finance_df['Interest Pay'] = np.ceil(bond_returns)
+    finance_df['Total draw'] = np.ceil(withdrawals)
+    finance_df['Equity draw'] = np.ceil(equity_draws)
+    finance_df['IRA draw'] = np.ceil(ira_distributions['IRA-m'])
+    finance_df['P-IRA draw'] = np.ceil(ira_distributions['IRA-p'])
+    finance_df['Your RMD'] = np.ceil(ira_distributions['RMD-m'])
+    finance_df['Partner RMD'] = np.ceil(ira_distributions['RMD-p'])
+    finance_df['Adj Gross Income'] = np.ceil(adj_gross_incomes)
     #finance_df['div_ret'] = div_ret
     finance_df['Expense'] = np.ceil(yearly_expenses)
     finance_df['propertyTax'] = np.ceil(home_expenses['property-tax'])
