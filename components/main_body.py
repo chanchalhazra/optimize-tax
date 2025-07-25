@@ -188,7 +188,7 @@ def main_content():
                                               "Savings & Investment", "Deferred Income Distribution"])
             RMD_age = 75
             with tab1:
-                cell1, cell2, cell3 = st.columns(3)
+                cell1, cell2, cell3, cell4 = st.columns(4)
                 with cell1:
                     age_m = st.number_input("Current Age", min_value=0, max_value=129, value=50)
                     retire_age_m = st.number_input("Retiring age", min_value=0, max_value=129, value=60)
@@ -199,14 +199,16 @@ def main_content():
                     plan_to_age_m = st.number_input("Plan to age", min_value=0, max_value=129, value=90)
 
                 with cell3:
-                    income_m = st.number_input("Income excl. 401k", min_value=0, max_value=30000000,
-                                               value=(wage_income_m - contribution_401k))
+                    income_m = st.number_input("Gross Income", min_value=0, max_value=30000000,
+                                               value=wage_income_m)
                     ssn_earning_m = st.number_input("SSN Earnings", min_value=0, max_value=100000, value=36000)
-
+                with cell4:
+                    ira_contribution_m = st.number_input("IRA/401k Contribution", min_value=0,
+                                                        max_value=1000000, value=contribution_401k)
                     #rmd_index = {'rmd-m': age_m, 'rmd-p': age_p}
 
             with tab2:
-                cell1, cell2, cell3 = st.columns(3)
+                cell1, cell2, cell3, cell4 = st.columns(4)
                 with cell1:
                     if filing_choice == 'Married':
                         age_p = st.number_input("Partner Age", min_value=0, max_value=129, value=50)
@@ -228,13 +230,22 @@ def main_content():
                                                         value=0, disabled=True)
                 with cell3:
                     if filing_choice == 'Married':
-                        income_p = st.number_input("Partner Income excl. 401K", min_value=0, max_value=30000000,
+                        income_p = st.number_input("Partner Gross Income", min_value=0, max_value=30000000,
                                                    value=(wage_income_p-contribution_401k_p))
                         ssn_earning_p = st.number_input("Partner SSN earning", min_value=0, max_value=100000, value=36000)
                     else:
                         income_p = st.number_input("Partner annual Income", min_value=0, max_value=30000000, value=0, disabled=True)
                         ssn_earning_p = st.number_input("Partner SSN benefits", min_value=0, max_value=100000, value=0,
                                                         disabled=True)
+                with cell4:
+                    if filing_choice == 'Married':
+                        ira_contribution_p = st.number_input("Partner IRA/401k Contribution", min_value=0,
+                                                             max_value=1000000, value=contribution_401k_p)
+                    else:
+                        ira_contribution_p = st.number_input("Partner IRA/401k Contribution", min_value=0,
+                                                             max_value=1000000, value=contribution_401k_p, disabled=True)
+
+
 
                 #Estimate the future years based on age and plan to age
                 future_years = max((plan_to_age_m-age_m),(plan_to_age_p-age_p))
@@ -247,9 +258,16 @@ def main_content():
                 ssn_earnings_p = [round(ssn_earning_p * ((1 + 0.01 * COLA_rate) ** (i - yrs_before_ssn_p)), 2)
                                   if i >= yrs_before_ssn_p else 0 for i in range(future_years)]
                 combined_ssn_earnings = [a+b for a,b in zip(ssn_earnings_m, ssn_earnings_p)]
-                incomes_m = [income_m if i <= (retire_age_m - age_m) else 0 for i in range(future_years)]
-                incomes_p = [income_p if i <= (retire_age_p - age_p) else 0 for i in range(future_years)]
+                incomes_m = [(income_m-ira_contribution_m) if i <= (retire_age_m - age_m)
+                             else 0 for i in range(future_years)]
+                incomes_p = [(income_p-ira_contribution_p) if i <= (retire_age_p - age_p) else 0 for i in
+                             range(future_years)]
                 combined_incomes = [a+b for a, b in zip(incomes_m, incomes_p)]
+                ira_contributions_m = [ira_contribution_m if i <= (retire_age_m - age_m) else 0 for i in
+                                       range(future_years)]
+                ira_contributions_p = [ira_contribution_p if i <= (retire_age_m - age_m) else 0 for i in
+                                       range(future_years)]
+                retirement_contribution = {'ira-contrib-m': ira_contributions_m, 'ira-contrib-p': ira_contributions_p}
             with tab3:
                 # st.write("enter your planned expenses including teh ones which can give tax credit like donations")
                 col1, col2, col3, col4 = st.columns(4)
@@ -353,7 +371,7 @@ def main_content():
             bond_portfolio = combined_portfolio * (1 - equity_distribution)
             portfolio = {'IRA-m': ira_m, 'IRA-p': ira_p, 'ROTH-m': roth_m,
                          'ROTH-p': roth_p, 'equity': equity_portfolio, 'bond': bond_portfolio}
-            retirement_contribution = {'401k-m': contribution_401k, '401k-p': contribution_401k_p}
+
             #Calculate returns and taxes:
 
             simulation_returns,equity_index, dividend_index, bond_index = monte_carlo_simulation(mu_equity, sigma_equity, mu_dividend, sigma_dividend,

@@ -289,8 +289,10 @@ def calculate_end_balance(start_val, expenses, incomes, ssn_earnings, market_ret
         taxes['gain-tax'].append(gain_tax)
         taxes['state-tax'].append(state_tax)
         # Update the investment balances
-        ira_m_bal = np.ceil(max(0,ira_return_m + ira_m_bal - ira_distribution['IRA-m']-ira_distribution['RMD-m']))
-        ira_p_bal = np.ceil(max(0, ira_return_p + ira_p_bal - ira_distribution['IRA-p']-ira_distribution['RMD-p']))
+        ira_m_bal = np.ceil(max(0,ira_return_m + ira_m_bal + retirement_contribution['ira-contrib-m'][i]
+                                - ira_distribution['IRA-m']-ira_distribution['RMD-m']))
+        ira_p_bal = np.ceil(max(0, ira_return_p + ira_p_bal + retirement_contribution['ira-contrib-p'][i]
+                                - ira_distribution['IRA-p']-ira_distribution['RMD-p']))
         roth_m_bal = np.ceil(max(0,roth_return_m + roth_m_bal))
         roth_p_bal = np.ceil(max(0,roth_return_p + roth_p_bal))
         equity_bal = np.ceil(max(0, equity_return + equity_bal - equity_withdrawal))
@@ -320,17 +322,17 @@ def build_yearly_dataframe(future_years, total_ssn_earnings, total_incomes, year
     finance_df["SSN"] = np.ceil(total_ssn_earnings)
     finance_df['Start IRA'] = end_balance['IRA-m']
     finance_df['Start IRA'] = finance_df['Start IRA'].shift(1).fillna(starting_portfolio['IRA-m'])
-    finance_df['Start IRA-p'] = end_balance['IRA-p']
-    finance_df['Start IRA-p'] = finance_df['Start IRA-p'].shift(1).fillna(starting_portfolio['IRA-p'])
+    finance_df['Start IRA-P'] = end_balance['IRA-p']
+    finance_df['Start IRA-P'] = finance_df['Start IRA-P'].shift(1).fillna(starting_portfolio['IRA-p'])
     finance_df['Start Equity'] = end_balance['equity']
     finance_df['Start Equity'] = finance_df['Start Equity'].shift(1).fillna(starting_portfolio['equity'])
-    finance_df["Cap yield"] = market_return['equity']
-    finance_df["Div yield"] = market_return['dividend']
-    finance_df["bond yield"] = market_return['bond']
-    finance_df['Capital Return'] = eq_ret
+    finance_df["Cap yield %"] = market_return['equity']
+    finance_df["Div yield %"] = market_return['dividend']
+    finance_df["Bond yield %"] = market_return['bond']
+    #finance_df['Capital Return'] = eq_ret
     finance_df['Dividend Pay'] = np.ceil(dividend_returns)
     finance_df['Interest Pay'] = np.ceil(bond_returns)
-    finance_df['Total draw'] = np.ceil(withdrawals)
+    finance_df['Req. draw'] = np.ceil(withdrawals)
     finance_df['Equity draw'] = np.ceil(equity_draws)
     finance_df['IRA draw'] = np.ceil(ira_distributions['IRA-m'])
     finance_df['P-IRA draw'] = np.ceil(ira_distributions['IRA-p'])
@@ -339,25 +341,29 @@ def build_yearly_dataframe(future_years, total_ssn_earnings, total_incomes, year
     finance_df['Adj Gross Income'] = np.ceil(adj_gross_incomes)
     #finance_df['div_ret'] = div_ret
     finance_df['Expense'] = np.ceil(yearly_expenses)
-    finance_df['propertyTax'] = np.ceil(home_expenses['property-tax'])
+    #finance_df['propertyTax'] = np.ceil(home_expenses['property-tax'])
     finance_df['Fed Tax'] = taxes['fed-tax']
     finance_df['Gain Tax'] = taxes['gain-tax']
     finance_df['State Tax'] = taxes['state-tax']
     finance_df['Total Tax'] = total_tax
     finance_df['End IRA'] = end_balance['IRA-m']
-    finance_df['End IRA-p'] = end_balance['IRA-p']
+    finance_df['End IRA-P'] = end_balance['IRA-p']
     finance_df['End Equity'] = end_balance['equity']
     #st.write(f"end IRA is {finance_df['End IRA'].iloc[-1]}")
     return finance_df
 
 def final_outcomes(df1, df2, df3, df4):
     data = {
-        "Your IRA": [df1["End IRA"].iloc[-1], df2["End IRA"].iloc[-1], df3["End IRA"].iloc[-1], df4["End IRA"].iloc[-1]],
-        "Partner IRA": [df1["End IRA-p"].iloc[-1], df2["End IRA-p"].iloc[-1], df3["End IRA-p"].iloc[-1], df4["End IRA-p"].iloc[-1]],
+        "Your IRA   ": [df1["End IRA"].iloc[-1], df2["End IRA"].iloc[-1], df3["End IRA"].iloc[-1], df4["End IRA"].iloc[-1]],
+        "Partner IRA": [df1["End IRA-P"].iloc[-1], df2["End IRA-P"].iloc[-1], df3["End IRA-P"].iloc[-1], df4["End IRA-P"].iloc[-1]],
         "Equity Portfolio": [df1['End Equity'].iloc[-1], df2['End Equity'].iloc[-1],df3['End Equity'].iloc[-1],df4['End Equity'].iloc[-1]],
-        "Total Tax": [sum(df1['Total Tax']), sum(df2['Total Tax']), sum(df3['Total Tax']), sum(df4['Total Tax'])]
+        "Total Tax": [sum(df1['Total Tax']), sum(df2['Total Tax']), sum(df3['Total Tax']), sum(df4['Total Tax'])],
+        "Ending Total $": [(df1["End IRA"].iloc[-1] + df1["End IRA-P"].iloc[-1]+ df1['End Equity'].iloc[-1]),
+                          (df2["End IRA"].iloc[-1] + df2["End IRA-P"].iloc[-1]+ df2['End Equity'].iloc[-1]),
+                          (df3["End IRA"].iloc[-1] + df3["End IRA-P"].iloc[-1]+ df3['End Equity'].iloc[-1]),
+                          (df4["End IRA"].iloc[-1] + df4["End IRA-P"].iloc[-1]+ df4['End Equity'].iloc[-1])]
     }
-    data["Your IRA"] = [f"{val:,.0f}" for val in data["Your IRA"]]
+    data["Your IRA   "] = [f"{val:,.0f}" for val in data["Your IRA   "]]
     data["Partner IRA"] = [f"{val:,.0f}" for val in data["Partner IRA"]]
     data["Equity Portfolio"] = [f"{val:,.0f}" for val in data["Equity Portfolio"]]
     data["Total Tax"] = [f"{val:,.0f}" for val in data["Total Tax"]]

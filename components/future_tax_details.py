@@ -5,7 +5,7 @@ def future_yearly_tables(df1, df2, df3, df4):
 
     with st.container():
         df = final_outcomes(df1, df2, df3, df4)
-        cell1, cell2, cell3 = st.columns([1,4,1])
+        cell1, cell2, cell3 = st.columns([1,6,1])
         with cell2:
             st.markdown(
                 f"<p style='text-align: center;font-size:18px'><b>Portfolio Ending Balance & Detailed Table</b></p>",
