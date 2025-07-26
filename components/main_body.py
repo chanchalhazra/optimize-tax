@@ -18,162 +18,166 @@ def main_content():
         states = {'California': 3.0, 'Florida': 0.0, 'Texas': 0.0, 'Oregon': 2.0, 'Arizona': 2.0}
         residing_state = st.selectbox("**Residing State**", states.keys(), key="residing_state")
     with col5:
-       tax_choice = st.radio("**Estimate Taxes for**", ["Current & Future Years", "Current Year",],
-                                 horizontal=True, key="tax_choice")
-    income_tax_rate, st_deduction, salt_cap = get_income_tax_rates(st.session_state.filing_choice)
-    capital_gain_tax_rate = get_capital_gain_tax_rates(st.session_state.filing_choice)
-    st.markdown("```")
-    with st.container(border=True):
-        st.markdown(f"<p style='text-align: center;font-size:20px'><b>Tax Estimation for Current Year</b></p>",
-                    unsafe_allow_html=True)
-        tab1, tab2, tab3 = st.tabs(["Wages & Income", "adjustments to Income",
-                                          "Itemized Deductions & Tax Credits"])
-        with tab1:
-            cell1, cell2, cell3, cell4 = st.columns(4)
-            with cell1:
-                wage_income_m = st.number_input("Your Wages & Salaries", min_value=0, max_value=100000000,
-                                              value=0, step=1000)
-                if filing_choice == "Married":
-                    wage_income_p = st.number_input("Partner Wages & Salaries", min_value=0, max_value=10000000, value=0)
-                else:
-                    wage_income_p = st.number_input("Partner Wages & Salaries", min_value=0, max_value=1000000, value=0, disabled=True)
-                    wage_income_p = 0
-                rental_income = st.number_input("Rental Income", min_value=0, max_value=100000, value=0)
+       tax_choice = st.radio("**Estimate Taxes for**", ["Current Year", "Future Years",],
+                                 horizontal=True, key="tax_choice", index=1)
+    if tax_choice == "Current Year":
+        income_tax_rate, st_deduction, salt_cap = get_income_tax_rates(st.session_state.filing_choice)
+        capital_gain_tax_rate = get_capital_gain_tax_rates(st.session_state.filing_choice)
+        st.markdown("```")
+        with st.container(border=True):
+            st.markdown(f"<p style='text-align: center;font-size:20px'><b>Tax Estimation for Current Year</b></p>",
+                        unsafe_allow_html=True)
+            tab1, tab2, tab3 = st.tabs(["Wages & Income", "adjustments to Income",
+                                              "Itemized Deductions & Tax Credits"])
+            with tab1:
+                cell1, cell2, cell3, cell4 = st.columns(4)
+                with cell1:
+                    wage_income_m = st.number_input("Your Wages & Salaries", min_value=0, max_value=100000000,
+                                                  value=0, step=1000)
+                    if filing_choice == "Married":
+                        wage_income_p = st.number_input("Partner Wages & Salaries", min_value=0, max_value=10000000, value=0)
+                    else:
+                        wage_income_p = st.number_input("Partner Wages & Salaries", min_value=0, max_value=1000000, value=0, disabled=True)
+                        wage_income_p = 0
+                    rental_income = st.number_input("Rental Income", min_value=0, max_value=100000, value=0)
 
-            with cell2:
-                business_income = st.number_input("Business Income", min_value=0, max_value=10000000, value=0)
-                interest_taxable = st.number_input("Taxable Interest(bond,CD etc) Est", min_value=0, max_value=100000, value=0)
-                interest_notax = st.number_input("Estimated Tax-exempt interest", min_value=0, max_value=100000, value=0)
+                with cell2:
+                    business_income = st.number_input("Business Income", min_value=0, max_value=10000000, value=0)
+                    interest_taxable = st.number_input("Taxable Interest(bond,CD etc) Est", min_value=0, max_value=100000, value=0)
+                    interest_notax = st.number_input("Estimated Tax-exempt interest", min_value=0, max_value=100000, value=0)
 
-            with cell3:
-                ssn_earning = st.number_input("Social security benefits", min_value=0, max_value=100000, value=0)
-                pension_income = st.number_input("Pensions and Annuity", min_value=0, max_value=1000000, value=0)
-                ira_distribution = st.number_input("IRA Distributions", min_value=0, max_value=10000000, value=0)
+                with cell3:
+                    ssn_earning = st.number_input("Social security benefits", min_value=0, max_value=100000, value=0)
+                    pension_income = st.number_input("Pensions and Annuity", min_value=0, max_value=1000000, value=0)
+                    ira_distribution = st.number_input("IRA Distributions", min_value=0, max_value=10000000, value=0)
 
-            with cell4:
-                qualified_dividend = st.number_input("Estimated Qualified Dividend", min_value=0, max_value=100000,
-                                                     value=0)
-                short_term_gain = st.number_input("Short Term Capital gain", min_value=0, max_value=1000000, value=0)
-                long_capital_gain = st.number_input("Long Term Capital gain", min_value=0, max_value=10000000, value=0)
+                with cell4:
+                    qualified_dividend = st.number_input("Estimated Qualified Dividend", min_value=0, max_value=100000,
+                                                         value=0)
+                    short_term_gain = st.number_input("Short Term Capital gain", min_value=0, max_value=1000000, value=0)
+                    long_capital_gain = st.number_input("Long Term Capital gain", min_value=0, max_value=10000000, value=0)
 
-        with tab2:
-            cell1, cell2, cell3, cell4 = st.columns(4)
-            with cell1:
-                unemployment_benefit = st.number_input("Unemployment Benefits", min_value=0, max_value=100000000,
-                                                value=0, step=1000)
-                other_income = st.number_input("Other Income", min_value=0, max_value=25000, value=0)
-            with cell2:
-                contribution_401k = st.number_input("Contribution to 401K IRA", min_value=0,
-                                                    max_value=1000000, value=0)
-                contribution_401k_p = st.number_input("Partner contribution to 401K IRA", min_value=0, max_value=25000, value=0)
-            with cell3:
-                student_interest_deduction = st.number_input("Student loan interest deduction", min_value=0,
-                                                             max_value=100000, value=0)
-                self_health_deduction = st.number_input("Self employed health Insurance", min_value=0,
-                                                             max_value=100000, value=0)
-            with cell4:
-                alimony_pay_deduction = st.number_input("Alimony Paid", min_value=0, max_value=100000000,
-                                                        value=0, step=1000)
-                alimony_pay_received = st.number_input("Alimony received", min_value=0, max_value=100000000,
-                                                        value=0, step=1000)
+            with tab2:
+                cell1, cell2, cell3, cell4 = st.columns(4)
+                with cell1:
+                    unemployment_benefit = st.number_input("Unemployment Benefits", min_value=0, max_value=100000000,
+                                                    value=0, step=1000)
+                    other_income = st.number_input("Other Income", min_value=0, max_value=25000, value=0)
+                with cell2:
+                    contribution_401k = st.number_input("Contribution to 401K IRA", min_value=0,
+                                                        max_value=1000000, value=0)
+                    contribution_401k_p = st.number_input("Partner contribution to 401K IRA", min_value=0, max_value=35000, value=0)
+                with cell3:
+                    student_interest_deduction = st.number_input("Student loan interest deduction", min_value=0,
+                                                                 max_value=100000, value=0)
+                    self_health_deduction = st.number_input("Self employed health Insurance", min_value=0,
+                                                                 max_value=100000, value=0)
+                with cell4:
+                    alimony_pay_deduction = st.number_input("Alimony Paid", min_value=0, max_value=100000000,
+                                                            value=0, step=1000)
+                    alimony_pay_received = st.number_input("Alimony received", min_value=0, max_value=100000000,
+                                                            value=0, step=1000)
 
-        with tab3:
-            cell1, cell2, cell3, cell4 = st.columns(4)
-            with cell1:
-                interest_mortgage = st.number_input("Yearly Mortgage(<1M) Interest", min_value=0, max_value=1000000,
-                                                    value=0)
-                property_tax = st.number_input("Yearly Property Taxes", min_value=0, max_value=25000, value=0)
+            with tab3:
+                cell1, cell2, cell3, cell4 = st.columns(4)
+                with cell1:
+                    interest_mortgage = st.number_input("Yearly Mortgage(<1M) Interest", min_value=0, max_value=1000000,
+                                                        value=0)
+                    property_tax = st.number_input("Yearly Property Taxes", min_value=0, max_value=25000, value=0)
 
-                # Your actual deduction is only for the amount that exceeds 7.5 %of your Adjusted Gross Income (AGI).
-                # include Health Insurance premiums
-            with cell2:
-                est_donation = st.number_input("Total planned donation", min_value=0, max_value=1000000, value=00)
-                med_expenses = st.number_input("Medical & Dental Expense", min_value=0, max_value=100000, value=0)
-            with cell3:
-                investment_interest_expense = st.number_input("Investment Interest Expense", min_value=0, max_value=100000,value=0)
-                child_care=st.number_input("Child Care, adoption, Income Credit", min_value=0,max_value=25000, value=0)
-            with cell4:
+                    # Your actual deduction is only for the amount that exceeds 7.5 %of your Adjusted Gross Income (AGI).
+                    # include Health Insurance premiums
+                with cell2:
+                    est_donation = st.number_input("Total planned donation", min_value=0, max_value=1000000, value=00)
+                    med_expenses = st.number_input("Medical & Dental Expense", min_value=0, max_value=100000, value=0)
+                with cell3:
+                    investment_interest_expense = st.number_input("Investment Interest Expense", min_value=0, max_value=100000,value=0)
+                    child_care=st.number_input("Child Care, adoption, Income Credit", min_value=0,max_value=25000, value=0)
+                with cell4:
 
-                other_credit = st.number_input("Any sort of Income Credit", min_value=0, max_value=25000, value=0)
-                foreign_tax_credit = st.number_input("Foreign Tax Credit", min_value=0, max_value=25000, value=0)
-        '''
-        # This section to save and upload input data file
-        input_data = {
-            'filing_choice': filing_choice,
-            'residing_state': residing_state,
-            'wage_income': wage_income,
-            
-        }
-        col1, col2 = st.columns([2,2])
-        with col1:
-            download_data(input_data)
-        with col2:
-            upload_data()
-    #st.divider()'''
-        #Derive Adjusted Gross Income - Federal Income
-        gross_income = (wage_income_m+wage_income_p+0.85*ssn_earning+interest_taxable+pension_income
-                        + short_term_gain+ira_distribution+rental_income+business_income
-                        + unemployment_benefit+other_income)
-        adjusted_gross_income = gross_income-contribution_401k-contribution_401k_p
-        fed_long_capital_gain = long_capital_gain+qualified_dividend
+                    other_credit = st.number_input("Any sort of Income Credit", min_value=0, max_value=25000, value=0)
+                    foreign_tax_credit = st.number_input("Foreign Tax Credit", min_value=0, max_value=25000, value=0)
+            '''
+            # This section to save and upload input data file
+            input_data = {
+                'filing_choice': filing_choice,
+                'residing_state': residing_state,
+                'wage_income': wage_income,
+                
+            }
+            col1, col2 = st.columns([2,2])
+            with col1:
+                download_data(input_data)
+            with col2:
+                upload_data()
+        #st.divider()'''
+            #Derive Adjusted Gross Income - Federal Income
+            gross_income = (wage_income_m+wage_income_p+0.85*ssn_earning+interest_taxable+pension_income
+                            + short_term_gain+ira_distribution+rental_income+business_income
+                            + unemployment_benefit+other_income)
+            adjusted_gross_income = gross_income-contribution_401k-contribution_401k_p
+            fed_long_capital_gain = long_capital_gain+qualified_dividend
 
-        #Derive Gross Income for the State
-        state_gross_income = adjusted_gross_income + fed_long_capital_gain - 0.85*ssn_earning
+            #Derive Gross Income for the State
+            state_gross_income = adjusted_gross_income + fed_long_capital_gain - 0.85*ssn_earning
 
-        # Calculate State Taxes(Assume itemized state deduction)
-        state_taxable_income = state_gross_income-property_tax-interest_mortgage
-        if residing_state not in ['Florida', 'Texas']:
-            state_tax_rate = get_state_tax_rates(state=residing_state, filing_as=filing_choice)
-            tot_state_tax = 0
-            for i in range(10):
-                state_tax = calculate_state_tax(state_tax_rate, state_taxable_income-tot_state_tax)
-                #state_taxable_income = state_taxable_income - state_tax
-                tot_state_tax = sum(state_tax)
-            st.session_state.state_tax_total = tot_state_tax
-        else:
-            state_tax = [0, 0]
-            st.session_state.state_tax_total = 0
+            # Calculate State Taxes(Assume itemized state deduction)
+            state_taxable_income = state_gross_income-property_tax-interest_mortgage
+            if residing_state not in ['Florida', 'Texas']:
+                state_tax_rate = get_state_tax_rates(state=residing_state, filing_as=filing_choice)
+                tot_state_tax = 0
+                for i in range(10):
+                    state_tax = calculate_state_tax(state_tax_rate, state_taxable_income-tot_state_tax)
+                    #state_taxable_income = state_taxable_income - state_tax
+                    tot_state_tax = sum(state_tax)
+                st.session_state.state_tax_total = tot_state_tax
+            else:
+                state_tax = [0, 0]
+                st.session_state.state_tax_total = 0
 
-        #st.write(f"Total state tax {tot_state_tax}")
-        #Derive Federal Taxable Income
-        #itemized_deduction = interest_mortgage+property_tax
-        itemized_deduction = interest_mortgage + est_donation + min(property_tax + sum(state_tax), salt_cap)
-        fed_taxable_income = adjusted_gross_income - max(st_deduction,itemized_deduction)
+            #st.write(f"Total state tax {tot_state_tax}")
+            #Derive Federal Taxable Income
+            #itemized_deduction = interest_mortgage+property_tax
+            itemized_deduction = interest_mortgage + est_donation + min(property_tax + sum(state_tax), salt_cap)
+            fed_taxable_income = adjusted_gross_income - max(st_deduction,itemized_deduction)
 
-        #Calcuate all the taxes
-        #income_tax_rate, st_deduction = get_income_tax_rates(st.session_state.filing_choice)
-        #capital_gain_tax_rate = get_capital_gain_tax_rates(st.session_state.filing_choice)
-        fed_income_tax = calculate_income_tax(income_tax_rate, fed_taxable_income)
-        fed_gain_tax, rate = calculate_gain_tax(capital_gain_tax_rate, fed_taxable_income, fed_long_capital_gain)
+            #Calcuate all the taxes
+            #income_tax_rate, st_deduction = get_income_tax_rates(st.session_state.filing_choice)
+            #capital_gain_tax_rate = get_capital_gain_tax_rates(st.session_state.filing_choice)
+            fed_income_tax = calculate_income_tax(income_tax_rate, fed_taxable_income)
+            fed_gain_tax, rate = calculate_gain_tax(capital_gain_tax_rate, fed_taxable_income, fed_long_capital_gain)
 
-        data = {
-            "Federal Income": ["Adjusted Gross Income", "Taxable Income", "Federal Income Tax"],
-            "Fed $": [f"{adjusted_gross_income:,}", f"{fed_taxable_income:,}", f"{sum(fed_income_tax):,}"],
-            "Capital Gain": ["Long Term Gain", "Gain Tax Rate %", "Capital Gain Tax"],
-            "Gain $": [f"{fed_long_capital_gain:,}", f"{rate}", f"{sum(fed_gain_tax):,}"],
-            "State Level": ["Adjusted Gross Income", "Taxable Income", "State Tax"],
-            "State $": [f"{state_gross_income:,}", f"{state_taxable_income:,}", f"{sum(state_tax):,}"],
-        }
+            data = {
+                "Federal Income": ["Adjusted Gross Income", "Taxable Income", "Federal Income Tax"],
+                "Fed $": [f"{adjusted_gross_income:,}", f"{fed_taxable_income:,}", f"{sum(fed_income_tax):,}"],
+                "Capital Gain": ["Long Term Gain", "Gain Tax Rate %", "Capital Gain Tax"],
+                "Gain $": [f"{fed_long_capital_gain:,}", f"{rate}", f"{sum(fed_gain_tax):,}"],
+                "State Level": ["Adjusted Gross Income", "Taxable Income", "State Tax"],
+                "State $": [f"{state_gross_income:,}", f"{state_taxable_income:,}", f"{sum(state_tax):,}"],
+            }
 
-        df = pd.DataFrame(data)
-        # Display table in Streamlit
+            df = pd.DataFrame(data)
+            # Display table in Streamlit
 
-        st.write("")
-        st.markdown(f"<span style='font-size:18px'><i>Tax Estimates</b></span>", unsafe_allow_html=True)
-        #st.table(df.reset_index(drop=True))
-        st.dataframe(df)
-        col1, col2, col3 = st.columns([2,2,2])
-        with col1:
-            st.write(f"  Standard Deduction  =  {st_deduction}")
-        with col2:
-            st.write(f"  Itemized Deduction = {itemized_deduction:,}")
-        with col3:
-            if itemized_deduction > st_deduction:
-                st.write(f" Itemized deduction is selected")
+            st.write("")
+            st.markdown(f"<span style='font-size:18px'><i>Tax Estimates</b></span>", unsafe_allow_html=True)
+            #st.table(df.reset_index(drop=True))
+            st.dataframe(df)
+            col1, col2, col3 = st.columns([2,2,2])
+            with col1:
+                st.write(f"  Standard Deduction  =  {st_deduction}")
+            with col2:
+                st.write(f"  Itemized Deduction = {itemized_deduction:,}")
+            with col3:
+                if itemized_deduction > st_deduction:
+                    st.write(f" Itemized deduction is selected")
     st.markdown("~~~")
 
-    if tax_choice == "Current & Future Years":
-
+    if tax_choice == "Future Years":
+        # populate fed_income_tax, fed_gain_tax, state_tax with 00
+        fed_income_tax = []
+        fed_gain_tax = []
+        state_tax = []
         path = './data/equity_bond_returns.csv'
         (_, mu_fitted_equity_cap, sigma_fitted_equity_cap, mu_fitted_equity_dividend, sigma_fitted_equity_dividend,
          mu_fitted_bond, sigma_fitted_bond) = read_fit_data(path)
@@ -204,11 +208,11 @@ def main_content():
 
                 with cell3:
                     income_m = st.number_input("Gross Income", min_value=0, max_value=30000000,
-                                               value=wage_income_m)
+                                               value=0)
                     ssn_earning_m = st.number_input("SSN Earnings", min_value=0, max_value=100000, value=36000)
                 with cell4:
                     ira_contribution_m = st.number_input("IRA/401k Contribution", min_value=0,
-                                                        max_value=1000000, value=contribution_401k)
+                                                        max_value=1000000, value=0)
                     #rmd_index = {'rmd-m': age_m, 'rmd-p': age_p}
 
             with tab2:
@@ -235,7 +239,7 @@ def main_content():
                 with cell3:
                     if filing_choice == 'Married':
                         income_p = st.number_input("Partner Gross Income", min_value=0, max_value=30000000,
-                                                   value=(wage_income_p-contribution_401k_p))
+                                                   value=0)
                         ssn_earning_p = st.number_input("Partner SSN earning", min_value=0, max_value=100000, value=36000)
                     else:
                         income_p = st.number_input("Partner annual Income", min_value=0, max_value=30000000, value=0, disabled=True)
@@ -244,10 +248,10 @@ def main_content():
                 with cell4:
                     if filing_choice == 'Married':
                         ira_contribution_p = st.number_input("Partner IRA/401k Contribution", min_value=0,
-                                                             max_value=1000000, value=contribution_401k_p)
+                                                             max_value=1000000, value=0)
                     else:
                         ira_contribution_p = st.number_input("Partner IRA/401k Contribution", min_value=0,
-                                                             max_value=1000000, value=contribution_401k_p, disabled=True)
+                                                             max_value=1000000, value=0, disabled=True)
 
 
 
@@ -278,7 +282,7 @@ def main_content():
                 with col1:
                     rent_expense = st.number_input("Rent per Yr", min_value=0, max_value=30000000, value=0)
                     property_tax_2 = st.number_input("Property Tax per yr", min_value=0, max_value=30000000,
-                                                     value=property_tax)
+                                                     value=0)
                 with col2:
                     mortgage_balance = st.number_input("Mortgage Balance", min_value=0, max_value=3000000, value=0)
                     mortgage_rate = st.number_input("Mortgage Rate", min_value=0.0, max_value=15.0, value=3.0)
@@ -318,7 +322,7 @@ def main_content():
                 with col3:
                     combined_portfolio = st.number_input("Taxable Investment Portfolio", min_value=0, max_value=100000000, value=0)
                     other_income = st.number_input("Net Business $ Rent Income", min_value=0, max_value=3000000,
-                                                   value=(rental_income+business_income))
+                                                   value=0)
 
                 with col4:
                     pension_income_m = st.number_input("Pension $/yr", min_value=0, max_value=100000, value=0)
@@ -419,4 +423,4 @@ def main_content():
 
                 future_yearly_tables(df1, df2, df3, df4)
 
-    return fed_income_tax, fed_gain_tax, state_tax, filing_choice, residing_state
+    return fed_income_tax, fed_gain_tax, state_tax, filing_choice, residing_state, tax_choice

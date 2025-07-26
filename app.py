@@ -12,6 +12,7 @@ if 'state_tax_total' not in st.session_state:
     st.session_state.state_tax_total = 0.0
 
 
-income_tax, gain_tax, state_tax, filing_choice, residing_state = main_content()
-tax_tables(income_tax, gain_tax, state_tax, filing_choice, residing_state)
+income_tax, gain_tax, state_tax, filing_choice, residing_state, tax_choice = main_content()
+if tax_choice == "Current Year":
+    tax_tables(income_tax, gain_tax, state_tax, filing_choice, residing_state)
 

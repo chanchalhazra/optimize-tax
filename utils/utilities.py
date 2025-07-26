@@ -43,29 +43,25 @@ def monte_carlo_simulation(mu_equity, sigma_equity, mu_dividend, sigma_dividend,
     #np.random.seed(seed=4562)
     np.random.seed(45789)
     # initialize simulation returns as Numpy arrays
-    simulation_returns = {'equity': np.zeros((no_years, no_simulations)),
-                          'dividend': np.zeros((no_years, no_simulations)),
-                          'bond': np.zeros((no_years, no_simulations))}
+    simulation_returns = {'equity': np.zeros((no_simulations, no_years)),
+                          'dividend': np.zeros((no_simulations, no_years)),
+                          'bond': np.zeros((no_simulations, no_years))}
     equity_simulated = []
     dividend_simulated = []
     bond_simulated = []
     for i in range(no_simulations):
-        simulation_returns['equity'][:, i] = np.transpose(
-            np.random.normal(loc=mu_equity, scale=sigma_equity, size=no_years))
+        simulation_returns['equity'][i, :] = np.random.normal(loc=mu_equity, scale=sigma_equity, size=no_years)
         # print(simulation_returns['equity'])
-        simulation_returns['dividend'][:, i] = np.transpose(
-            np.random.normal(loc=mu_dividend, scale=sigma_dividend, size=no_years))
-        simulation_returns['bond'][:, i] = np.transpose(np.random.normal(loc=mu_bond, scale=sigma_bond, size=no_years))
-        equity_bal = 1
-        dividend_received = 0
-        bond_return = 0
-        for k in range(no_years):
-            equity_bal *= (1 + 0.01 * simulation_returns['equity'][k, i])
-            dividend_received += 0.01 * simulation_returns['dividend'][k, i]
-            bond_return += 0.01 * simulation_returns['bond'][k, i]
+        simulation_returns['dividend'][i, :] = np.random.normal(loc=mu_dividend, scale=sigma_dividend, size=no_years)
+        simulation_returns['bond'][i, :] = np.random.normal(loc=mu_bond, scale=sigma_bond, size=no_years)
+
+        equity_bal = np.prod([(0.01 * a + 1) for a in simulation_returns['equity'][i]])
+        dividend_received = np.sum(0.01 * simulation_returns['dividend'][i])
+        bond_return = np.sum(0.01 * simulation_returns['bond'][i])
         equity_simulated.append(equity_bal)
         dividend_simulated.append(dividend_received)
         bond_simulated.append(bond_return)
+
     # Find 10th, 25th ... percentiles
     equity_index = {}
     dividend_index = {}
@@ -82,21 +78,21 @@ def monte_carlo_simulation(mu_equity, sigma_equity, mu_dividend, sigma_dividend,
 
 def return_by_scenarios(sim_returns, equity_index, dividend_index, bond_index, inflation):
 
-    sig_below_avg_returns = {'equity': np.round(sim_returns['equity'][:, equity_index[10]],2),
-                             'dividend': np.round(sim_returns['dividend'][:, dividend_index[10]], 2),
-                             'bond': np.round(sim_returns['bond'][:, bond_index[10]], 2)}
+    sig_below_avg_returns = {'equity': np.round(sim_returns['equity'][equity_index[10],:],2),
+                             'dividend': np.round(sim_returns['dividend'][dividend_index[10],:], 2),
+                             'bond': np.round(sim_returns['bond'][bond_index[10],:], 2)}
 
-    below_avg_returns = {'equity': np.round(sim_returns['equity'][:, equity_index[25]],2),
-                             'dividend': np.round(sim_returns['dividend'][:, dividend_index[25]], 2),
-                             'bond': np.round(sim_returns['bond'][:, bond_index[25]], 2)}
+    below_avg_returns = {'equity': np.round(sim_returns['equity'][equity_index[25],:],2),
+                             'dividend': np.round(sim_returns['dividend'][dividend_index[25],:], 2),
+                             'bond': np.round(sim_returns['bond'][bond_index[25],:], 2)}
 
-    avg_returns = {'equity': np.round(sim_returns['equity'][:, equity_index[50]],2),
-                             'dividend': np.round(sim_returns['dividend'][:, dividend_index[50]], 2),
-                             'bond': np.round(sim_returns['bond'][:, bond_index[50]], 2)}
+    avg_returns = {'equity': np.round(sim_returns['equity'][equity_index[50],:],2),
+                             'dividend': np.round(sim_returns['dividend'][dividend_index[50],:], 2),
+                             'bond': np.round(sim_returns['bond'][bond_index[50],:], 2)}
 
-    above_avg_returns = {'equity': np.round(sim_returns['equity'][:, equity_index[75]],2),
-                             'dividend': np.round(sim_returns['dividend'][:, dividend_index[75]], 2),
-                             'bond': np.round(sim_returns['bond'][:, bond_index[75]], 2)}
+    above_avg_returns = {'equity': np.round(sim_returns['equity'][equity_index[75],:],2),
+                             'dividend': np.round(sim_returns['dividend'][dividend_index[75],:], 2),
+                             'bond': np.round(sim_returns['bond'][bond_index[75],:], 2)}
 
     sig_below_avg_returns_c = {
         'equity': np.round([sig_below_avg_returns['equity'][i] / ((1 + inflation * 0.01) ** (i))
