@@ -210,39 +210,36 @@ def calculate_end_balance(start_val, expenses, incomes, ssn_earnings, market_ret
     equity_draws = []
     ira_distributions = {'RMD-m': [], 'RMD-p': [], 'IRA-m': [], 'IRA-p': []}
     taxes = {'fed-tax': [], 'gain-tax': [], 'state-tax': []}
-    #start_val = start_portfolio
+    # Initialize the investment starting balances
     equity_bal = start_val['equity']
     ira_m_bal = start_val['IRA-m']
     ira_p_bal = start_val['IRA-p']
     roth_m_bal = start_val['ROTH-m']
     roth_p_bal = start_val['ROTH-p']
-    #Required Minimum distribution rates:
+    # Query the Required Minimum distribution rates:
     rmd_rates, rmd_start = rmd_distribution()
     rmd_m_index = rmd_start - rmd_index['rmd-m']
     rmd_p_index = rmd_start - rmd_index['rmd-p']
     for i in range(market_return['equity'].size):
-        #st.write(f"index is {i}")
-        ira_return_m = 0.01*market_return["equity"][i]*ira_m_bal+ 0.01*market_return["dividend"][i]*ira_m_bal
-        ira_return_p = 0.01 * market_return["equity"][i] * ira_p_bal + 0.01 * market_return["dividend"][i] * ira_p_bal
-        roth_return_m = (0.01 * market_return["equity"][i] * roth_m_bal
-                         + 0.01 * market_return["dividend"][i] * roth_m_bal)
-        roth_return_p = (0.01 * market_return["equity"][i] * roth_p_bal
-                         + 0.01 * market_return["dividend"][i] * roth_p_bal)
+        stock_return = market_return["equity"][i] + market_return["dividend"][i]
+        ira_return_m = 0.01 * ira_m_bal * stock_return
+        ira_return_p = 0.01 * ira_p_bal * stock_return
+        roth_return_m = 0.01 * stock_return * roth_m_bal
+        roth_return_p = 0.01 * stock_return * roth_p_bal
+
         equity_return = np.ceil(0.01 * market_return["equity"][i] * equity_bal)
         equity_dividend = 0.01 * market_return["dividend"][i] * equity_bal
         bond_return = 0.01 * market_return["bond"][i] * start_val['bond']
-        # Multiplying expense by 1.25 so that we included an estimated tax payment
         home_expense = {'property-tax': home_expenses['property-tax'][i],
                         'interest': home_expenses['interest'][i]}
         equity_returns.append(equity_return)
         dividend_returns.append(equity_dividend)
         bond_returns.append(bond_return)
         # iterate to match final total tax with initial assumption
-        tax_expense = 0.25 * expenses[i] # estimated to be 25% of expense
+        tax_expense = 0.25 * expenses[i]  # estimated to be 25% of expense
         for k in range(10):
             shortfall = max(0, (tax_expense + expenses[i] - (equity_dividend+bond_return + incomes[i] + ssn_earnings[i])))
 
-            #withdrawals.append(shortfall)
             # withdraw from IRA and Equity portfolio to support expense + estimated Tax (25%)
             # Withdraw from iRA and equity portfolio based on custom distribution and teh ration of IRA balance between
             # you and your partner
@@ -257,12 +254,14 @@ def calculate_end_balance(start_val, expenses, incomes, ssn_earnings, market_ret
             else:
                 rmd_p_distribution = 0
 
-            shortfall = (shortfall - rmd_m_distribution - rmd_p_distribution)
-
-            equity_withdrawal = max(0, (1-custom_distribution) * shortfall)
+            shortfall = max(0, (shortfall - rmd_m_distribution - rmd_p_distribution))
+            if equity_bal > (1-custom_distribution) * shortfall:
+                equity_withdrawal = max(0, (1-custom_distribution) * shortfall)
+            else:
+                equity_withdrawal = equity_bal
             ira_ratio = start_val['IRA-m']/(start_val['IRA-m']+start_val['IRA-p']+0.01)
             ira_m_withdraw = max(0, (shortfall-equity_withdrawal)*ira_ratio)
-            ira_p_withdraw = max(0,(shortfall - equity_withdrawal - ira_m_withdraw))
+            ira_p_withdraw = max(0, (shortfall - equity_withdrawal - ira_m_withdraw))
             ira_distribution = {'IRA-m': ira_m_withdraw,
                                 'IRA-p': ira_p_withdraw,
                                 'RMD-m': rmd_m_distribution,
@@ -367,6 +366,7 @@ def final_outcomes(df1, df2, df3, df4):
     data["Partner IRA"] = [f"{val:,.0f}" for val in data["Partner IRA"]]
     data["Equity Portfolio"] = [f"{val:,.0f}" for val in data["Equity Portfolio"]]
     data["Total Tax"] = [f"{val:,.0f}" for val in data["Total Tax"]]
+    data["Ending Total $"] = [f"{val:,.0f}" for val in data["Ending Total $"]]
     indexes = ["Significantly Below Average Market Return", "Below Average Market Return", "Average Market Return", "Best Case Market Return"]
     df = pd.DataFrame(data, index=indexes)
     df.index.name = f"Market Condition"
