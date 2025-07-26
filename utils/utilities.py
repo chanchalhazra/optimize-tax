@@ -40,7 +40,8 @@ def mortgage_interest(begin_balance, rate, monthly_payment, remaining_years):
 def monte_carlo_simulation(mu_equity, sigma_equity, mu_dividend, sigma_dividend, mu_bond, sigma_bond,
                            no_simulations, no_years):
 
-    np.random.seed(seed=4562)
+    #np.random.seed(seed=4562)
+    np.random.seed(45789)
     # initialize simulation returns as Numpy arrays
     simulation_returns = {'equity': np.zeros((no_years, no_simulations)),
                           'dividend': np.zeros((no_years, no_simulations)),

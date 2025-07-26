@@ -2,7 +2,9 @@ import numpy as np
 
 def monte_carlo_simulation(mu_equity, sigma_equity, mu_dividend, sigma_dividend, mu_bond, sigma_bond,
                            no_simulations, no_years):
+
     np.random.seed(seed=4562)
+
     # initialize simulation returns as Numpy arrays
     simulation_returns = {'equity': np.zeros((no_years, no_simulations)),
                           'dividend': np.zeros((no_years, no_simulations)),

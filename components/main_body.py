@@ -9,6 +9,7 @@ from components.future_tax_details import future_yearly_tables
 import pandas as pd
 
 def main_content():
+    #np.random.seed(seed=4562)
     col1, col2, col3, col4, col5 = st.columns([1,4, 2,1, 6])
     with col2:
         filing_choice = st.radio("**File Taxes as**", ["Single", "Married", "Head"],
