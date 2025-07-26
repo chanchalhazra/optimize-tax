@@ -356,15 +356,13 @@ def final_outcomes(df1, df2, df3, df4, inflation):
                           (df3["End IRA"].iloc[-1] + df3["End IRA-P"].iloc[-1] + df3['End Equity'].iloc[-1]),
                           (df4["End IRA"].iloc[-1] + df4["End IRA-P"].iloc[-1] + df4['End Equity'].iloc[-1])]
     }
-    data["Your IRA   "] = [f"{val:,.0f}" for val in data["Your IRA   "]]
-    data["Partner IRA"] = [f"{val:,.0f}" for val in data["Partner IRA"]]
-    data["Equity Balance"] = [f"{val:,.0f}" for val in data["Equity Balance"]]
-    data["Total Tax"] = [f"{val:,.0f}" for val in data["Total Tax"]]
-    data["Ending Total $"] = [f"{val:,.0f}" for val in data["Ending Total $"]]
+    data_current = data.copy()
     indexes = ["Significantly Below Average Market Return", "Below Average Market Return", "Average Market Return", "Best Case Market Return"]
     df = pd.DataFrame(data, index=indexes)
+    df = df.style.format("{:,.0f}")
     df.index.name = f"Market Condition"
-    #df = df.round(0)
-    df_current = df[["Your IRA   ", "Partner IRA", "Equity Balance", "Total Tax", "Ending Total $"]].copy()
+    df_current = pd.DataFrame(data_current)
     #df_current.reset_index(drop=True, inplace=True)
+    df_current = df_current*current_factor
+    df_current = df_current.style.format("{:,.0f}")
     return df, df_current
