@@ -351,7 +351,7 @@ def main_content():
             with col1:
                 capital_gain_percent = st.slider("Avg Capital gain % of portfolio", min_value=0.0, max_value=1.0,
                                                  value=0.3, step=0.1)
-                currency = st.radio("Current or Future value", ("current", "future"), horizontal=True)
+                roth_conversion_amt = st.number_input("ROTH conversion $/yr", min_value=0, max_value=1000000, value=0)
 
             with col3:
                 custom_distribution = st.slider("IRA % of withdrawal", min_value=0.0, max_value=1.0, value=0.4,
@@ -383,10 +383,10 @@ def main_content():
             #Calculate returns and taxes:
             if input_mode == 'Simulate':
                 simulation_returns,equity_index, dividend_index, bond_index = monte_carlo_simulation(mu_equity, sigma_equity, mu_dividend, sigma_dividend,
-                                                            mu_bond, sigma_bond,1000, no_years=future_years)
+                                                            mu_bond, sigma_bond,10000, no_years=future_years)
                 market_returns_current, market_returns_future = return_by_scenarios(simulation_returns,equity_index,
                                                                                     dividend_index, bond_index, 2.5)
-                if currency == 'current':
+                '''
                     df1 = build_yearly_dataframe(future_years, combined_ssn_earnings,combined_incomes, yearly_expenses,
                                                  market_returns_current['sig_below_avg'], portfolio, home_expenses,
                                                  retirement_contribution, filing_choice, capital_gain_percent,
@@ -403,24 +403,24 @@ def main_content():
                                                  market_returns_current['above_avg'], portfolio, home_expenses,
                                                  retirement_contribution, filing_choice, capital_gain_percent,
                                                  custom_distribution, rmd_index)
-                else:
-                    df1 = build_yearly_dataframe(future_years, combined_ssn_earnings, combined_incomes, yearly_expenses,
-                                                 market_returns_future['sig_below_avg'], portfolio, home_expenses,
-                                                 retirement_contribution, filing_choice, capital_gain_percent,
-                                                 custom_distribution, rmd_index)
-                    df2 = build_yearly_dataframe(future_years, combined_ssn_earnings, combined_incomes,yearly_expenses,
-                                                 market_returns_future['below_avg'], portfolio,home_expenses,
-                                                 retirement_contribution, filing_choice, capital_gain_percent,
-                                                 custom_distribution, rmd_index)
-                    df3 = build_yearly_dataframe(future_years, combined_ssn_earnings, combined_incomes,yearly_expenses,
-                                                 market_returns_future['average'], portfolio,home_expenses,
-                                                 retirement_contribution, filing_choice, capital_gain_percent,
-                                                 custom_distribution, rmd_index)
-                    df4 = build_yearly_dataframe(future_years, combined_ssn_earnings, combined_incomes,yearly_expenses,
-                                                 market_returns_future['above_avg'], portfolio,home_expenses,
-                                                 retirement_contribution, filing_choice, capital_gain_percent,
-                                                 custom_distribution, rmd_index)
+                else:'''
+                df1 = build_yearly_dataframe(future_years, combined_ssn_earnings, combined_incomes, yearly_expenses,
+                                             market_returns_future['sig_below_avg'], portfolio, home_expenses,
+                                             retirement_contribution, filing_choice, capital_gain_percent,
+                                             custom_distribution, rmd_index)
+                df2 = build_yearly_dataframe(future_years, combined_ssn_earnings, combined_incomes,yearly_expenses,
+                                             market_returns_future['below_avg'], portfolio,home_expenses,
+                                             retirement_contribution, filing_choice, capital_gain_percent,
+                                             custom_distribution, rmd_index)
+                df3 = build_yearly_dataframe(future_years, combined_ssn_earnings, combined_incomes,yearly_expenses,
+                                             market_returns_future['average'], portfolio,home_expenses,
+                                             retirement_contribution, filing_choice, capital_gain_percent,
+                                             custom_distribution, rmd_index)
+                df4 = build_yearly_dataframe(future_years, combined_ssn_earnings, combined_incomes,yearly_expenses,
+                                             market_returns_future['above_avg'], portfolio,home_expenses,
+                                             retirement_contribution, filing_choice, capital_gain_percent,
+                                             custom_distribution, rmd_index)
 
-                future_yearly_tables(df1, df2, df3, df4)
+                future_yearly_tables(df1, df2, df3, df4, inflation)
 
     return fed_income_tax, fed_gain_tax, state_tax, filing_choice, residing_state, tax_choice

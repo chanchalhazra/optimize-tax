@@ -1,17 +1,24 @@
 import streamlit as st
 from utils.utilities import final_outcomes
 
-def future_yearly_tables(df1, df2, df3, df4):
+def future_yearly_tables(df1, df2, df3, df4, inflation):
 
     with st.container():
-        df = final_outcomes(df1, df2, df3, df4)
-        cell1, cell2, cell3 = st.columns([1,6,1])
+        st.markdown(
+            f"<p style='text-align: center;font-size:20px'><b>Portfolio Ending Balance & Detailed Table</b></p>",
+            unsafe_allow_html=True)
+        df, df_current = final_outcomes(df1, df2, df3, df4, inflation)
+        cell1, cell2, cell3, cell4 = st.columns([1,11,8,1])
         with cell2:
             st.markdown(
-                f"<p style='text-align: center;font-size:18px'><b>Portfolio Ending Balance & Detailed Table</b></p>",
+                f"<p style='text-align: center;font-size:18px'><b>In Future $</b></p>",
                 unsafe_allow_html=True)
             st.dataframe(df, use_container_width=False)
-
+        with cell3:
+            st.markdown(
+                f"<p style='text-align: center;font-size:18px'><b>In Current $ </b></p>",
+                unsafe_allow_html=True)
+            st.dataframe(df_current, use_container_width=False, hide_index=True)
     with st.container():
         #st.markdown("#### Portfolio Detailed Table")
         tab1, tab2, tab3, tab4 = st.tabs(["Significantly Below Average Market", "Below Average Market Return",

@@ -42,57 +42,52 @@ def monte_carlo_simulation(mu_equity, sigma_equity, mu_dividend, sigma_dividend,
 
     #np.random.seed(seed=4562)
     np.random.seed(45789)
-    # initialize simulation returns as Numpy arrays
-    simulation_returns = {'equity': np.zeros((no_simulations, no_years)),
-                          'dividend': np.zeros((no_simulations, no_years)),
-                          'bond': np.zeros((no_simulations, no_years))}
-    equity_simulated = []
-    dividend_simulated = []
-    bond_simulated = []
-    for i in range(no_simulations):
-        simulation_returns['equity'][i, :] = np.random.normal(loc=mu_equity, scale=sigma_equity, size=no_years)
-        # print(simulation_returns['equity'])
-        simulation_returns['dividend'][i, :] = np.random.normal(loc=mu_dividend, scale=sigma_dividend, size=no_years)
-        simulation_returns['bond'][i, :] = np.random.normal(loc=mu_bond, scale=sigma_bond, size=no_years)
-
-        equity_bal = np.prod([(0.01 * a + 1) for a in simulation_returns['equity'][i]])
-        dividend_received = np.sum(0.01 * simulation_returns['dividend'][i])
-        bond_return = np.sum(0.01 * simulation_returns['bond'][i])
-        equity_simulated.append(equity_bal)
-        dividend_simulated.append(dividend_received)
-        bond_simulated.append(bond_return)
-
-    # Find 10th, 25th ... percentiles
+    # Run simulation and return as Numpy 2D arrays
+    simulation_returns = {'equity': np.random.normal(loc=mu_equity, scale=sigma_equity,
+                                                            size=(no_simulations, no_years)),
+                          'dividend': np.random.normal(loc=mu_dividend, scale=sigma_dividend,
+                                                              size=(no_simulations, no_years)),
+                          'bond': np.random.normal(loc=mu_bond, scale=sigma_bond,
+                                                          size=(no_simulations, no_years))}
+    #Find end balances for each simulation to find various percentile paths
+    equity_simulated_balances = np.prod(1 + 0.01*simulation_returns['equity'], axis=1)
+    dividend_simulated_total = np.sum(0.01 * simulation_returns['dividend'], axis=1)
+    bond_simulated_total = np.sum(0.01 * simulation_returns['bond'], axis=1)
+    # Find 10th, 25th ... percentiles and corresponding indexes of the market returns
     equity_index = {}
     dividend_index = {}
     bond_index = {}
     for percentile in [10, 25, 50, 75]:
-        equity_percentile = np.percentile(equity_simulated, percentile)
-        equity_index[percentile] = np.argmin(np.abs(equity_simulated - equity_percentile))
-        div_percentile = np.percentile(dividend_simulated, percentile)
-        dividend_index[percentile] = np.argmin(np.abs(dividend_simulated - div_percentile))
-        bond_percentile = np.percentile(bond_simulated, percentile)
-        bond_index[percentile] = np.argmin(np.abs(bond_simulated - bond_percentile))
+        equity_percentile = np.percentile(equity_simulated_balances, percentile)
+        equity_index[percentile] = np.argmin(np.abs(equity_simulated_balances - equity_percentile))
+        div_percentile = np.percentile(dividend_simulated_total, percentile)
+        dividend_index[percentile] = np.argmin(np.abs(dividend_simulated_total - div_percentile))
+        bond_percentile = np.percentile(bond_simulated_total, percentile)
+        bond_index[percentile] = np.argmin(np.abs(bond_simulated_total - bond_percentile))
 
     return simulation_returns, equity_index, dividend_index, bond_index
 
 def return_by_scenarios(sim_returns, equity_index, dividend_index, bond_index, inflation):
 
-    sig_below_avg_returns = {'equity': np.round(sim_returns['equity'][equity_index[10],:],2),
+    '''sig_below_avg_returns = {'equity': np.round(sim_returns['equity'][equity_index[10],:],2),
                              'dividend': np.round(sim_returns['dividend'][dividend_index[10],:], 2),
-                             'bond': np.round(sim_returns['bond'][bond_index[10],:], 2)}
+                             'bond': np.round(sim_returns['bond'][bond_index[10],:], 2)}'''
 
-    below_avg_returns = {'equity': np.round(sim_returns['equity'][equity_index[25],:],2),
-                             'dividend': np.round(sim_returns['dividend'][dividend_index[25],:], 2),
-                             'bond': np.round(sim_returns['bond'][bond_index[25],:], 2)}
+    sig_below_avg_returns = {'equity': np.round(sim_returns['equity'][equity_index[10]], 2),
+                             'dividend': np.round(sim_returns['dividend'][dividend_index[10]], 2),
+                             'bond': np.round(sim_returns['bond'][bond_index[10]], 2)}
 
-    avg_returns = {'equity': np.round(sim_returns['equity'][equity_index[50],:],2),
-                             'dividend': np.round(sim_returns['dividend'][dividend_index[50],:], 2),
-                             'bond': np.round(sim_returns['bond'][bond_index[50],:], 2)}
+    below_avg_returns = {'equity': np.round(sim_returns['equity'][equity_index[25]],2),
+                             'dividend': np.round(sim_returns['dividend'][dividend_index[25]], 2),
+                             'bond': np.round(sim_returns['bond'][bond_index[25]], 2)}
 
-    above_avg_returns = {'equity': np.round(sim_returns['equity'][equity_index[75],:],2),
-                             'dividend': np.round(sim_returns['dividend'][dividend_index[75],:], 2),
-                             'bond': np.round(sim_returns['bond'][bond_index[75],:], 2)}
+    avg_returns = {'equity': np.round(sim_returns['equity'][equity_index[50]],2),
+                             'dividend': np.round(sim_returns['dividend'][dividend_index[50]], 2),
+                             'bond': np.round(sim_returns['bond'][bond_index[50]], 2)}
+
+    above_avg_returns = {'equity': np.round(sim_returns['equity'][equity_index[75]],2),
+                             'dividend': np.round(sim_returns['dividend'][dividend_index[75]], 2),
+                             'bond': np.round(sim_returns['bond'][bond_index[75]], 2)}
 
     sig_below_avg_returns_c = {
         'equity': np.round([sig_below_avg_returns['equity'][i] / ((1 + inflation * 0.01) ** (i))
@@ -348,24 +343,28 @@ def build_yearly_dataframe(future_years, total_ssn_earnings, total_incomes, year
     #st.write(f"end IRA is {finance_df['End IRA'].iloc[-1]}")
     return finance_df
 
-def final_outcomes(df1, df2, df3, df4):
+def final_outcomes(df1, df2, df3, df4, inflation):
+    no_years = len(df1)-1
+    current_factor = 1/((1+0.01*inflation)**no_years)
     data = {
         "Your IRA   ": [df1["End IRA"].iloc[-1], df2["End IRA"].iloc[-1], df3["End IRA"].iloc[-1], df4["End IRA"].iloc[-1]],
         "Partner IRA": [df1["End IRA-P"].iloc[-1], df2["End IRA-P"].iloc[-1], df3["End IRA-P"].iloc[-1], df4["End IRA-P"].iloc[-1]],
-        "Equity Portfolio": [df1['End Equity'].iloc[-1], df2['End Equity'].iloc[-1],df3['End Equity'].iloc[-1],df4['End Equity'].iloc[-1]],
+        "Equity Balance": [df1['End Equity'].iloc[-1], df2['End Equity'].iloc[-1],df3['End Equity'].iloc[-1],df4['End Equity'].iloc[-1]],
         "Total Tax": [sum(df1['Total Tax']), sum(df2['Total Tax']), sum(df3['Total Tax']), sum(df4['Total Tax'])],
-        "Ending Total $": [(df1["End IRA"].iloc[-1] + df1["End IRA-P"].iloc[-1]+ df1['End Equity'].iloc[-1]),
-                          (df2["End IRA"].iloc[-1] + df2["End IRA-P"].iloc[-1]+ df2['End Equity'].iloc[-1]),
-                          (df3["End IRA"].iloc[-1] + df3["End IRA-P"].iloc[-1]+ df3['End Equity'].iloc[-1]),
-                          (df4["End IRA"].iloc[-1] + df4["End IRA-P"].iloc[-1]+ df4['End Equity'].iloc[-1])]
+        "Ending Total $": [(df1["End IRA"].iloc[-1] + df1["End IRA-P"].iloc[-1] + df1['End Equity'].iloc[-1]),
+                          (df2["End IRA"].iloc[-1] + df2["End IRA-P"].iloc[-1] + df2['End Equity'].iloc[-1]),
+                          (df3["End IRA"].iloc[-1] + df3["End IRA-P"].iloc[-1] + df3['End Equity'].iloc[-1]),
+                          (df4["End IRA"].iloc[-1] + df4["End IRA-P"].iloc[-1] + df4['End Equity'].iloc[-1])]
     }
     data["Your IRA   "] = [f"{val:,.0f}" for val in data["Your IRA   "]]
     data["Partner IRA"] = [f"{val:,.0f}" for val in data["Partner IRA"]]
-    data["Equity Portfolio"] = [f"{val:,.0f}" for val in data["Equity Portfolio"]]
+    data["Equity Balance"] = [f"{val:,.0f}" for val in data["Equity Balance"]]
     data["Total Tax"] = [f"{val:,.0f}" for val in data["Total Tax"]]
     data["Ending Total $"] = [f"{val:,.0f}" for val in data["Ending Total $"]]
     indexes = ["Significantly Below Average Market Return", "Below Average Market Return", "Average Market Return", "Best Case Market Return"]
     df = pd.DataFrame(data, index=indexes)
     df.index.name = f"Market Condition"
     #df = df.round(0)
-    return df
+    df_current = df[["Your IRA   ", "Partner IRA", "Equity Balance", "Total Tax", "Ending Total $"]].copy()
+    #df_current.reset_index(drop=True, inplace=True)
+    return df, df_current
