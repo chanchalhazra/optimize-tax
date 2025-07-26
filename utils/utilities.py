@@ -16,7 +16,7 @@ def read_fit_data(path):
     #print(df.columns) #['year', 'sp_tot_return', 'sp_cap_return', 'sp_div_yield', 'US_bond']
     df = df[['year', 'sp_cap_return', 'sp_div_yield', 'US_bond']]
     #print(df.head())
-    mu_equity_cap, sigma_equity_cap = stats.norm.fit(df['sp_cap_return'][-30:])
+    mu_equity_cap, sigma_equity_cap = stats.norm.fit(df['sp_cap_return'])
     mu_equity_dividend, sigma_equity_dividend = stats.norm.fit(df['sp_div_yield'][-30:])
     mu_bond, sigma_bond = stats.norm.fit(df['US_bond'])
     return df, mu_equity_cap, sigma_equity_cap, mu_equity_dividend, sigma_equity_dividend, mu_bond, sigma_bond
