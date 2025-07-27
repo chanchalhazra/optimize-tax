@@ -189,7 +189,8 @@ def calculate_taxes(income, ssn_earning, bond_interest, ira_distribution,
     return sum(fed_income_tax), sum(fed_gain_tax), state_tax_total, adjusted_gross_income
 
 def calculate_end_balance(start_val, expenses, incomes, ssn_earnings, market_return, retirement_contribution,
-                          filing_choice, capital_gain_percent, custom_distribution, home_expenses, rmd_index):
+                          filing_choice, capital_gain_percent, custom_distribution, home_expenses, rmd_index,
+                          residing_state):
     # start_val is a dictionary with IRA, ROTH_IRA, equity and bond as the keys
     # market_return is a dictionary with equity, dividend and bond as the keys
     end_balance ={'IRA-m': [], 'IRA-p': [], 'ROTH-m': [], 'ROTH-p': [], 'equity': []}
@@ -261,7 +262,7 @@ def calculate_end_balance(start_val, expenses, incomes, ssn_earnings, market_ret
 
             long_capital_gain = equity_withdrawal * capital_gain_percent + equity_dividend
             other_income = 0
-            residing_state = 'California'
+            #residing_state = 'California'
             est_donation = 0
 
             fed_tax, gain_tax, state_tax, adj_gross_income = calculate_taxes(incomes[i], ssn_earnings[i], bond_return, ira_distribution,
@@ -299,7 +300,7 @@ def calculate_end_balance(start_val, expenses, incomes, ssn_earnings, market_ret
             adj_gross_incomes, ira_distributions, equity_draws, taxes)
 def build_yearly_dataframe(future_years, total_ssn_earnings, total_incomes, yearly_expenses, market_return,
                            starting_portfolio, home_expenses, retirement_contribution, filing_choice,
-                           capital_gain_percent, custom_distribution, rmd_index):
+                           capital_gain_percent, custom_distribution, rmd_index, residing_state):
     current_year = datetime.now().year
     years = list(range(current_year, current_year + future_years))
     finance_df = pd.DataFrame(index=years)
@@ -308,7 +309,7 @@ def build_yearly_dataframe(future_years, total_ssn_earnings, total_incomes, year
      bond_returns, adj_gross_incomes, ira_distributions, equity_draws, taxes) = calculate_end_balance(starting_portfolio, yearly_expenses, total_incomes,
                                                             total_ssn_earnings, market_return, retirement_contribution,
                                                             filing_choice, capital_gain_percent, custom_distribution,
-                                                            home_expenses, rmd_index)
+                                                            home_expenses, rmd_index, residing_state)
     finance_df["Income"] = np.ceil(total_incomes)
     finance_df["SSN"] = np.ceil(total_ssn_earnings)
     finance_df['Start IRA'] = end_balance['IRA-m']
@@ -354,10 +355,11 @@ def final_outcomes(df1, df2, df3, df4, inflation):
         "Ending Total $": [(df1["End IRA"].iloc[-1] + df1["End IRA-P"].iloc[-1] + df1['End Equity'].iloc[-1]),
                           (df2["End IRA"].iloc[-1] + df2["End IRA-P"].iloc[-1] + df2['End Equity'].iloc[-1]),
                           (df3["End IRA"].iloc[-1] + df3["End IRA-P"].iloc[-1] + df3['End Equity'].iloc[-1]),
-                          (df4["End IRA"].iloc[-1] + df4["End IRA-P"].iloc[-1] + df4['End Equity'].iloc[-1])]
+                          (df4["End IRA"].iloc[-1] + df4["End IRA-P"].iloc[-1] + df4['End Equity'].iloc[-1])],
+        "State Tax": [sum(df1['State Tax']), sum(df2['State Tax']), sum(df3['State Tax']), sum(df4['State Tax'])]
     }
     data_current = data.copy()
-    indexes = ["Significantly Below Average Market Return", "Below Average Market Return", "Average Market Return", "Best Case Market Return"]
+    indexes = ["Significantly Below Average", "Below Average", "Average Return", "Best Case Return"]
     df = pd.DataFrame(data, index=indexes)
     df = df.style.format("{:,.0f}")
     df.index.name = f"Market Condition"
