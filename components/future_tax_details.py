@@ -8,7 +8,7 @@ def future_yearly_tables(df1, df2, df3, df4, inflation):
             f"<p style='text-align: center;font-size:20px'><b>Portfolio Ending Balance & Detailed Table</b></p>",
             unsafe_allow_html=True)
         df, df_current = final_outcomes(df1, df2, df3, df4, inflation)
-        cell1, cell2, cell3, cell4 = st.columns([1,11,8,1])
+        cell1, cell2, cell3, cell4 = st.columns([1,21,17,1])
         with cell2:
             st.markdown(
                 f"<p style='text-align: center;font-size:18px'><b>In Future $</b></p>",

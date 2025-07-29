@@ -38,3 +38,14 @@ lst_1 = 1+lst
 print(lst_1)
 print(np.prod(lst_1, axis=0))
 
+def_withdraw_age_m =60
+age_m = 57
+future_years = 90-51
+def_withdraw_duration_m = 10
+def_distributions_m = [ 5,6,7,8,9,10,11,12,13,14]
+years_before_m = max(0, def_withdraw_age_m - age_m)
+years_after_m = future_years+1 - years_before_m - def_withdraw_duration_m
+def_distributions_m[:0] = [0]*years_before_m
+def_distributions_m[years_before_m+def_withdraw_duration_m:] = [0]*years_after_m
+print(len(def_distributions_m))
+

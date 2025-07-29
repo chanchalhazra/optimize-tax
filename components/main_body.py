@@ -256,7 +256,7 @@ def main_content():
 
 
                 #Estimate the future years based on age and plan to age
-                future_years = max((plan_to_age_m-age_m),(plan_to_age_p-age_p))
+                future_years = max((plan_to_age_m-age_m)+1,(plan_to_age_p-age_p)+1)
                 #Estimate future SSN earnings
                 COLA_rate = 1.5
                 yrs_before_ssn_m = ssn_age_m - age_m
@@ -330,21 +330,51 @@ def main_content():
                                                        value=0)
 
             with tab5:
-                col1, col2, col3 = st.columns(3)
+                col1, col2, col3, col4 = st.columns(4)
                 with col1:
-                    deferred_amt_m = st.number_input("Avg $ withdrawal/year", min_value=0, max_value=3000000, value=0)
-                    deferred_amt_p = st.number_input("Partner - Avg $ withdrawal/year", min_value=0, max_value=3000000,
-                                                     value=0)
+                    deferred_amt_m = st.number_input("Total deferred balance", min_value=0, max_value=3000000, value=0)
+                    def_withdraw_age_m = st.number_input("Withdraw start age", min_value=0, max_value=129, value=retire_age_m)
 
                 with col2:
-                    def_withdraw_age_m = st.number_input("Withdraw start age", min_value=0, max_value=129, value=0)
-                    def_withdraw_age_p = st.number_input("Partner - Withdraw start age", min_value=0, max_value=129, value=0)
-
+                    def_withdraw_duration_m = st.number_input("No of year", min_value=0, max_value=20, value=0)
+                    def_distributions_m = []
+                    #st.write("enter year by year")
+                    with st.expander("Enter Distributions by Year", expanded=True):
+                        for i in range(def_withdraw_duration_m):
+                            val = st.number_input(f"Year {i+1} distribution", min_value=0.0, max_value=1000000.0,
+                                                  value=deferred_amt_m/def_withdraw_duration_m)
+                            def_distributions_m.append(val)
 
                 with col3:
-                    def_withdraw_duration = st.number_input("No of year", min_value=0, max_value=129, value=10)
-                    def_withdraw_duration_p = st.number_input("Partner - no of years", min_value=0, max_value=129,
-                                                              value=10)
+                    deferred_amt_p = st.number_input("Partner Total deferred balance", min_value=0, max_value=3000000,
+                                                     value=0)
+                    def_withdraw_age_p = st.number_input("Partner - Withdraw start age", min_value=0, max_value=129,
+                                                         value=retire_age_p)
+
+                with col4:
+
+                    def_withdraw_duration_p = st.number_input("Partner - no of years", min_value=0, max_value=20,
+                                                            value=0)
+                    # st.write("enter year by year")
+                    def_distributions_p = []
+                    with st.expander("Partner - Distributions by Year", expanded=True):
+                        for i in range(def_withdraw_duration_p):
+                            val = st.number_input(f"Partner Year {i+1} distribution", min_value=0.0, max_value=1000000.0,
+                                                  value=deferred_amt_p/def_withdraw_duration_p)
+                            def_distributions_p.append(val)
+                # create the deferred comp distribution series
+                years_before_m = def_withdraw_age_m-age_m
+                years_after_m = future_years - years_before_m - def_withdraw_duration_m
+                def_distributions_m[:0] = [0]*years_before_m
+                def_distributions_m[years_before_m+def_withdraw_duration_m:] = [0]*years_after_m
+                years_before_p = def_withdraw_age_p - age_p
+                years_after_p = future_years - years_before_p - def_withdraw_duration_p
+                def_distributions_p[:0] = [0] * years_before_p
+                def_distributions_p[years_before_p + def_withdraw_duration_p:] = [0] * years_after_p
+                deferred_distributions = [a+b for a, b in zip(def_distributions_m,
+                                                              def_distributions_p)]
+                st.write(len(def_distributions_m), len(def_distributions_p), len(deferred_distributions))
+            ages = {'age-m': age_m, 'age-p': age_p}
             st.markdown('---')
             #Control room
             col1, col2, col3, col4, col5, col6, col7 = st.columns([3, 1, 3, 1, 2, 2, 2])
@@ -384,25 +414,29 @@ def main_content():
             if input_mode == 'Simulate':
                 simulation_returns,equity_index, dividend_index, bond_index = monte_carlo_simulation(mu_equity, sigma_equity, mu_dividend, sigma_dividend,
                                                             mu_bond, sigma_bond,2000, no_years=future_years)
-                market_returns_current, market_returns_future = return_by_scenarios(simulation_returns,equity_index,
+                market_returns_future = return_by_scenarios(simulation_returns,equity_index,
                                                                                     dividend_index, bond_index, 2.5)
 
                 df1 = build_yearly_dataframe(future_years, combined_ssn_earnings, combined_incomes, yearly_expenses,
                                              market_returns_future['sig_below_avg'], portfolio, home_expenses,
                                              retirement_contribution, filing_choice, capital_gain_percent,
-                                             custom_distribution, rmd_index, residing_state)
+                                             custom_distribution, rmd_index, residing_state, roth_conversion_amt,
+                                             ages, deferred_distributions)
                 df2 = build_yearly_dataframe(future_years, combined_ssn_earnings, combined_incomes,yearly_expenses,
                                              market_returns_future['below_avg'], portfolio,home_expenses,
                                              retirement_contribution, filing_choice, capital_gain_percent,
-                                             custom_distribution, rmd_index, residing_state)
+                                             custom_distribution, rmd_index, residing_state, roth_conversion_amt,
+                                             ages, deferred_distributions)
                 df3 = build_yearly_dataframe(future_years, combined_ssn_earnings, combined_incomes,yearly_expenses,
                                              market_returns_future['average'], portfolio,home_expenses,
                                              retirement_contribution, filing_choice, capital_gain_percent,
-                                             custom_distribution, rmd_index, residing_state)
+                                             custom_distribution, rmd_index, residing_state, roth_conversion_amt,
+                                             ages, deferred_distributions)
                 df4 = build_yearly_dataframe(future_years, combined_ssn_earnings, combined_incomes,yearly_expenses,
                                              market_returns_future['above_avg'], portfolio,home_expenses,
                                              retirement_contribution, filing_choice, capital_gain_percent,
-                                             custom_distribution, rmd_index, residing_state)
+                                             custom_distribution, rmd_index, residing_state, roth_conversion_amt,
+                                             ages, deferred_distributions)
 
                 future_yearly_tables(df1, df2, df3, df4, inflation)
 
