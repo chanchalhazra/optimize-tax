@@ -156,13 +156,16 @@ def calculate_taxes(income, ssn_earning, bond_interest, ira_distribution,
 
 def calculate_end_balance(start_val, expenses, incomes, ssn_earnings, market_return, retirement_contribution,
                           filing_choice, capital_gain_percent, custom_distribution, home_expenses, rmd_index,
-                          residing_state, roth_conversion_amt, ages_m, ages_p, deferred_distributions):
+                          residing_state, roth_conversion, ages_m, ages_p, deferred_distributions):
     # start_val is a dictionary with IRA, ROTH_IRA, equity and bond as the keys
     # market_return is a dictionary with equity, dividend and bond as the keys
     end_balance ={'IRA-m': [], 'IRA-p': [], 'ROTH-m': [], 'ROTH-p': [], 'equity': []}
     total_tax =[]
     equity_returns = []
     dividend_returns = []
+    roth_conversions = []
+    roth_dividends = []
+    roth_draws = {'roth-m-draw': [], 'roth-p-draw': []}
     bond_returns = []
     withdrawals = []
     adj_gross_incomes = []
@@ -179,64 +182,97 @@ def calculate_end_balance(start_val, expenses, incomes, ssn_earnings, market_ret
     rmd_rates, rmd_start = rmd_distribution()
     rmd_m_index = rmd_start - rmd_index['rmd-m']
     rmd_p_index = rmd_start - rmd_index['rmd-p']
+
+    # ratio of Ira balances. Withdrawal from iRA depends on ratio of IRA balances between partner and main person
+    #ira_ratio = start_val['IRA-m'] / (start_val['IRA-m'] + start_val['IRA-p'] + 0.01)
+
     for i in range(market_return['equity'].size):
+        ira_ratio = ira_m_bal / (ira_m_bal + ira_p_bal + 0.01)
         stock_return = market_return["equity"][i] + market_return["dividend"][i]
         ira_return_m = 0.01 * ira_m_bal * stock_return
         ira_return_p = 0.01 * ira_p_bal * stock_return
-        roth_return_m = 0.01 * stock_return * roth_m_bal
-        roth_return_p = 0.01 * stock_return * roth_p_bal
+        #roth_return_m = 0.01 * stock_return * roth_m_bal
+        #roth_return_p = 0.01 * stock_return * roth_p_bal
 
         equity_return = np.ceil(0.01 * market_return["equity"][i] * equity_bal)
         equity_dividend = 0.01 * market_return["dividend"][i] * equity_bal
+        roth_return_m = np.ceil(0.01 * market_return["equity"][i] * roth_m_bal)
+        roth_dividend_m = 0.01 * market_return["dividend"][i] * roth_m_bal
+        roth_return_p = np.ceil(0.01 * market_return["equity"][i] * roth_p_bal)
+        roth_dividend_p = 0.01 * market_return["dividend"][i] * roth_p_bal
         bond_return = 0.01 * market_return["bond"][i] * start_val['bond']
         home_expense = {'property-tax': home_expenses['property-tax'][i],
                         'interest': home_expenses['interest'][i]}
         equity_returns.append(equity_return)
         dividend_returns.append(equity_dividend)
+        roth_dividends.append(roth_dividend_m + roth_dividend_p)
         bond_returns.append(bond_return)
         # Required minimum distribution:
         if i >= rmd_m_index:
             # print(i-rmd_m_index)
             rmd_m_distribution = np.ceil(ira_m_bal / rmd_rates[(i - rmd_m_index)])
+            ira_m_bal -= rmd_m_distribution
             # st.write(f" RMD  {rmd_m_distribution}")
         else:
             rmd_m_distribution = 0
         if i > rmd_p_index:
             rmd_p_distribution = np.ceil(ira_p_bal / rmd_rates[i - rmd_m_index])
+            ira_p_bal -= rmd_p_distribution
         else:
             rmd_p_distribution = 0
         # Estimate total_income
-        est_total_income = (equity_dividend + bond_return + incomes[i] + ssn_earnings[i] + deferred_distributions[i]
-                            + rmd_p_distribution + rmd_m_distribution)
+        est_total_income = (equity_dividend + roth_dividend_m + roth_dividend_p + bond_return + incomes[i] + ssn_earnings[i]
+                            + deferred_distributions[i] + rmd_p_distribution + rmd_m_distribution)
         # iterate to match final total tax with initial assumption
         tax_expense = 0.25 * expenses[i]  # estimated to be 25% of expense
 
-        #Withdrawal from iRA depends on ration of IRA balances
-        ira_ratio = start_val['IRA-m'] / (start_val['IRA-m'] + start_val['IRA-p'] + 0.01)
+        # Expenses include core expense + Travel Expense + Mortgage + property Taxes
+        roth_conversion_amt_m = min(ira_m_bal, roth_conversion*ira_ratio)
+        roth_conversion_amt_p = min(ira_p_bal, roth_conversion*(1-ira_ratio))
+        roth_conversion_amt = roth_conversion_amt_m + roth_conversion_amt_p
+        roth_conversions.append(roth_conversion_amt)
+        #update IRA balances
+        ira_m_bal -= roth_conversion_amt_m
+        ira_p_bal -= roth_conversion_amt_p
         for k in range(10):
 
             shortfall = tax_expense + expenses[i] - est_total_income
 
             # withdraw from IRA and Equity portfolio to support expense + estimated Tax (25%)
-            # Withdraw from iRA and equity portfolio based on custom distribution and teh ration of IRA balance between
+            # Withdraw from iRA and equity portfolio based on custom distribution and the ration of IRA balance between
             # you and your partner
             if shortfall > 0:
                 # Now you need to withdraw from IRA and or Equity
                 if ages_m[i] > 60:
-                    #you can withdraw from IRA
-                    ira_m_withdraw = max(0, custom_distribution * shortfall * ira_ratio)
+                    if ira_m_bal > 0:
+                        #you can withdraw from IRA
+                        ira_m_withdraw = min(ira_m_bal, custom_distribution * shortfall * ira_ratio)
+                        roth_m_withdraw = 0
+                    else:
+                        ira_m_withdraw = 0
+                        roth_m_withdraw = min(roth_m_bal, custom_distribution * shortfall * ira_ratio)
                 else:
                     ira_m_withdraw = 0
+                    roth_m_withdraw = 0
 
                 if ages_p[i] > 60:
-                    #you can withdraw from IRA
-                    ira_p_withdraw = max(0, custom_distribution * shortfall * (1-ira_ratio))
+                    if ira_p_bal > 0:
+                        #you can withdraw from IRA
+                        ira_p_withdraw = min(ira_p_bal, custom_distribution * shortfall * (1-ira_ratio))
+                        roth_p_withdraw = 0
+                    else:
+                        ira_p_withdraw = 0
+                        roth_p_withdraw = min(roth_p_bal, custom_distribution * shortfall * (1-ira_ratio))
                 else:
                     ira_p_withdraw = 0
-                equity_withdrawal = shortfall - ira_m_withdraw - ira_p_withdraw
+                    roth_p_withdraw = 0
+
+                equity_withdrawal = shortfall - ira_m_withdraw - ira_p_withdraw - roth_m_withdraw - roth_p_withdraw
             else:
                 ira_m_withdraw = 0
                 ira_p_withdraw = 0
+                roth_m_withdraw = 0
+                roth_p_withdraw = 0
                 equity_withdrawal = shortfall
 
             # Need to put the IRA withdrawal condition of age 60
@@ -252,12 +288,15 @@ def calculate_end_balance(start_val, expenses, incomes, ssn_earnings, market_ret
             est_donation = 0
 
             fed_tax, gain_tax, state_tax, adj_gross_income = calculate_taxes(incomes[i], ssn_earnings[i], bond_return, ira_distribution,
-                                                           other_income,long_capital_gain,home_expense,est_donation,
-                                                           residing_state, filing_choice, deferred_distributions[i], roth_conversion_amt)
+                                                           other_income, long_capital_gain, home_expense, est_donation,
+                                                                             residing_state, filing_choice,
+                                                                             deferred_distributions[i], roth_conversion_amt)
             tax_expense = fed_tax + gain_tax + state_tax
         #st.write(f" taxes : {state_tax, fed_tax, gain_tax}")
         withdrawals.append(shortfall)
         equity_draws.append(equity_withdrawal)
+        roth_draws['roth-m-draw'].append(roth_m_withdraw)
+        roth_draws['roth-p-draw'].append(roth_p_withdraw)
         ira_distributions['RMD-m'].append(rmd_m_distribution)
         ira_distributions['RMD-p'].append(rmd_p_distribution)
         ira_distributions['IRA-m'].append(ira_m_withdraw)
@@ -268,11 +307,11 @@ def calculate_end_balance(start_val, expenses, incomes, ssn_earnings, market_ret
         taxes['state-tax'].append(state_tax)
         # Update the investment balances
         ira_m_bal = np.ceil(max(0,ira_return_m + ira_m_bal + retirement_contribution['ira-contrib-m'][i]
-                                - ira_distribution['IRA-m']-ira_distribution['RMD-m'] - roth_conversion_amt*ira_ratio))
+                                - ira_distribution['IRA-m']-ira_distribution['RMD-m']))
         ira_p_bal = np.ceil(max(0, ira_return_p + ira_p_bal + retirement_contribution['ira-contrib-p'][i]
-                                - ira_distribution['IRA-p']-ira_distribution['RMD-p'] - roth_conversion_amt*(1-ira_ratio)))
-        roth_m_bal = np.ceil(max(0,roth_return_m + roth_m_bal + roth_conversion_amt*ira_ratio))
-        roth_p_bal = np.ceil(max(0,roth_return_p + roth_p_bal + roth_conversion_amt*(1-ira_ratio)))
+                                - ira_distribution['IRA-p']-ira_distribution['RMD-p']))
+        roth_m_bal = np.ceil(max(0, roth_return_m + roth_m_bal + roth_conversion_amt_m - roth_m_withdraw))
+        roth_p_bal = np.ceil(max(0, roth_return_p + roth_p_bal + roth_conversion_amt_p - roth_p_withdraw))
         equity_bal = np.ceil(max(0, equity_return + equity_bal - equity_withdrawal))
         end_balance['IRA-m'].append(ira_m_bal)
         end_balance['IRA-p'].append(ira_p_bal)
@@ -283,7 +322,7 @@ def calculate_end_balance(start_val, expenses, incomes, ssn_earnings, market_ret
         adj_gross_incomes.append(adj_gross_income)
 
     return (end_balance, total_tax, equity_returns, dividend_returns, withdrawals, bond_returns,
-            adj_gross_incomes, ira_distributions, equity_draws, taxes)
+            adj_gross_incomes, ira_distributions, equity_draws, taxes, roth_dividends, roth_conversions, roth_draws)
 def build_yearly_dataframe(future_years, total_ssn_earnings, total_incomes, yearly_expenses, market_return,
                            starting_portfolio, home_expenses, retirement_contribution, filing_choice,
                            capital_gain_percent, custom_distribution, rmd_index, residing_state,
@@ -295,7 +334,9 @@ def build_yearly_dataframe(future_years, total_ssn_earnings, total_incomes, year
     ages_p = list(range(ages['age-p'], ages['age-p'] + future_years))
 
     (end_balance, total_tax, eq_ret, dividend_returns, withdrawals,
-     bond_returns, adj_gross_incomes, ira_distributions, equity_draws, taxes) = calculate_end_balance(starting_portfolio, yearly_expenses, total_incomes,
+     bond_returns, adj_gross_incomes, ira_distributions,
+     equity_draws, taxes, roth_dividends,
+     roth_conversions, roth_draws) = calculate_end_balance(starting_portfolio, yearly_expenses, total_incomes,
                                                             total_ssn_earnings, market_return, retirement_contribution,
                                                             filing_choice, capital_gain_percent, custom_distribution,
                                                             home_expenses, rmd_index, residing_state, roth_conversion_amt,
@@ -317,13 +358,17 @@ def build_yearly_dataframe(future_years, total_ssn_earnings, total_incomes, year
     finance_df["Bond yield %"] = market_return['bond']
     #finance_df['Capital Return'] = eq_ret
     finance_df['Dividend Pay'] = np.ceil(dividend_returns)
+    finance_df['ROTH Dividend'] = np.ceil(roth_dividends)
     finance_df['Interest Pay'] = np.ceil(bond_returns)
+    finance_df['Roth Conversion'] = np.ceil(roth_conversions)
     finance_df['Req. draw'] = np.ceil(withdrawals)
     finance_df['Equity draw'] = np.ceil(equity_draws)
     finance_df['IRA draw'] = np.ceil(ira_distributions['IRA-m'])
     finance_df['P-IRA draw'] = np.ceil(ira_distributions['IRA-p'])
     finance_df['Your RMD'] = np.ceil(ira_distributions['RMD-m'])
     finance_df['Partner RMD'] = np.ceil(ira_distributions['RMD-p'])
+    finance_df['ROTH draw'] = np.ceil(roth_draws['roth-m-draw'])
+    finance_df['ROTH-P draw'] = np.ceil(roth_draws['roth-p-draw'])
     finance_df['Adj Gross Income'] = np.ceil(adj_gross_incomes)
     #finance_df['div_ret'] = div_ret
     finance_df['Expense'] = np.ceil(yearly_expenses)
@@ -346,17 +391,17 @@ def final_outcomes(df1, df2, df3, df4, inflation):
     data = {
         "Your IRA   ": [df1["End IRA"].iloc[-1], df2["End IRA"].iloc[-1], df3["End IRA"].iloc[-1], df4["End IRA"].iloc[-1]],
         "Spouse IRA": [df1["End IRA-P"].iloc[-1], df2["End IRA-P"].iloc[-1], df3["End IRA-P"].iloc[-1], df4["End IRA-P"].iloc[-1]],
-        "ROTH total ": [df1['End ROTH-P'].iloc[-1]+df1['End ROTH'].iloc[-1], df2['End ROTH-P'].iloc[-1]+df2['End ROTH'].iloc[-1],
+        "ROTH total ": [df1['End ROTH-P'].iloc[-1]+ df1['End ROTH'].iloc[-1], df2['End ROTH-P'].iloc[-1]+df2['End ROTH'].iloc[-1],
                         df3['End ROTH-P'].iloc[-1]+df3['End ROTH'].iloc[-1], df4['End ROTH-P'].iloc[-1]+df4['End ROTH'].iloc[-1]],
         "Equity A/c": [df1['End Equity'].iloc[-1], df2['End Equity'].iloc[-1],df3['End Equity'].iloc[-1],df4['End Equity'].iloc[-1]],
-        "Total Bal": [(df1["End IRA"].iloc[-1] + df1["End IRA-P"].iloc[-1] + df1['End Equity'].iloc[-1])
-                          + df1['End ROTH'].iloc[-1]+df1['End ROTH-P'].iloc[-1],
-                          (df2["End IRA"].iloc[-1] + df2["End IRA-P"].iloc[-1] + df2['End Equity'].iloc[-1])
-                          + df2['End ROTH'].iloc[-1]+df2['End ROTH-P'].iloc[-1],
-                          (df3["End IRA"].iloc[-1] + df3["End IRA-P"].iloc[-1] + df3['End Equity'].iloc[-1])
-                          + df3['End ROTH'].iloc[-1]+ df3['End ROTH-P'].iloc[-1],
-                          (df4["End IRA"].iloc[-1] + df4["End IRA-P"].iloc[-1] + df4['End Equity'].iloc[-1])]
-                         + df4['End ROTH'].iloc[-1]+df4['End ROTH-P'].iloc[-1],
+        "Total Bal": [(df1["End IRA"].iloc[-1] + df1["End IRA-P"].iloc[-1] + df1['End Equity'].iloc[-1]
+                          + df1['End ROTH'].iloc[-1] + df1['End ROTH-P'].iloc[-1]),
+                          (df2["End IRA"].iloc[-1] + df2["End IRA-P"].iloc[-1] + df2['End Equity'].iloc[-1]
+                          + df2['End ROTH'].iloc[-1] + df2['End ROTH-P'].iloc[-1]),
+                          (df3["End IRA"].iloc[-1] + df3["End IRA-P"].iloc[-1] + df3['End Equity'].iloc[-1]
+                          + df3['End ROTH'].iloc[-1] + df3['End ROTH-P'].iloc[-1]),
+                          (df4["End IRA"].iloc[-1] + df4["End IRA-P"].iloc[-1] + df4['End Equity'].iloc[-1]
+                         + df4['End ROTH'].iloc[-1] + df4['End ROTH-P'].iloc[-1])],
         "Fed Tax": [sum(df1['Total Tax'])-sum(df1['State Tax']), sum(df2['Total Tax'])-sum(df2['State Tax']),
                         sum(df3['Total Tax'])-sum(df3['State Tax']), sum(df4['Total Tax'])-sum(df4['State Tax'])],
         "State Tax": [sum(df1['State Tax']), sum(df2['State Tax']), sum(df3['State Tax']), sum(df4['State Tax'])]
