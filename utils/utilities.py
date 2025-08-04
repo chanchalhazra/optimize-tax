@@ -118,7 +118,7 @@ def calculate_taxes(income, ssn_earning, bond_interest, ira_distribution,
 
     gross_income = (income + 0.85 * ssn_earning + bond_interest + pension_income
                     + short_term_gain + ira_distribution['IRA-m'] + ira_distribution['IRA-p'] +
-                    +ira_distribution['RMD-m'] + ira_distribution['RMD-m'] + other_income
+                    +ira_distribution['RMD-m'] + ira_distribution['RMD-p'] + other_income
                     + deferred_distribution + roth_conversion_amt)
 
     adjusted_gross_income = gross_income  # - contribution_401k - contribution_401k_p
@@ -216,7 +216,7 @@ def calculate_end_balance(start_val, expenses, incomes, ssn_earnings, market_ret
         else:
             rmd_m_distribution = 0
         if i > rmd_p_index:
-            rmd_p_distribution = np.ceil(ira_p_bal / rmd_rates[i - rmd_m_index])
+            rmd_p_distribution = np.ceil(ira_p_bal / rmd_rates[i - rmd_p_index])
             ira_p_bal -= rmd_p_distribution
         else:
             rmd_p_distribution = 0
