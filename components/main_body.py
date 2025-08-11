@@ -312,11 +312,11 @@ def main_content():
             with tab4:
                 col1, col2, col3, col4 = st.columns(4)
                 with col1:
-                    ira_m = st.number_input("401K/IRA", min_value=0, max_value=100000000, value=0)
-                    ira_p = st.number_input("Partner 401K/IRA", min_value=0, max_value=100000000, value=0)
+                    ira_m = st.number_input("401K/IRA Balance", min_value=0, max_value=100000000, value=0)
+                    ira_p = st.number_input("Partner 401K/IRA Balance", min_value=0, max_value=100000000, value=0)
 
                 with col2:
-                    roth_m = st.number_input("ROTH IRA", min_value=0, max_value=100000000, value=0)
+                    roth_m = st.number_input("ROTH IRA Balance", min_value=0, max_value=100000000, value=0)
                     roth_p = st.number_input("Partner ROTH IRA", min_value=0, max_value=100000000, value=0)
 
                 with col3:
@@ -373,7 +373,7 @@ def main_content():
                 def_distributions_p[years_before_p + def_withdraw_duration_p:] = [0] * years_after_p
                 deferred_distributions = [a+b for a, b in zip(def_distributions_m,
                                                               def_distributions_p)]
-                st.write(len(def_distributions_m), len(def_distributions_p), len(deferred_distributions))
+                #st.write(len(def_distributions_m), len(def_distributions_p), len(deferred_distributions))
             ages = {'age-m': age_m, 'age-p': age_p}
             st.markdown('---')
             #Control room
